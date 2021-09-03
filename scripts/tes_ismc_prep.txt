@@ -1,0 +1,3 @@
+test0.vcf
+test1.vcf
+test2.vcf

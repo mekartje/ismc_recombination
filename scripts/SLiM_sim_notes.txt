@@ -1,0 +1,172 @@
+SLiM Simulation Notes
+
+#initialize callback examaple
+initialize(){
+  initializeMutationRate([rate]);
+  #create a mutation type called "m1", with dominance coef. 0.5 and fixed ("f") fitness effect of 0
+  initializeMutationType("m1", 0.5, "f", 0.0);
+  #initialize a genomic element called "g1".
+  #this represents a particular genomic regions(e.g., introns, exons, UTRs)
+  #like w/ mutation types, may want to use special genomic element for a particular chromosomal region that want to track separately, even if it has the same characteristics as other similar regions
+  #each genomic element type has a particular mutational profile -- mutations occur in all gneomic elements at the same, uniform rate as set by overall mutation rate, but types of mutations that can occur in a particular type are determined by the mutational profile
+  #mutations in this genomic element are determined by mutation type "m1" for all of its mutations (1.0)
+  initializeGenomicElementType("g1", m1, 1.0);
+  #use g1 to set up a genomic element
+  #genomic element is a regions of the chromosome that uses a particular genomic element type
+  #this call initializes a single genomic element from base positions 0 to 99999 using element type g1
+  initializeGenomicElement(g1, 0, 99999);
+  #specifies rr for the whole chromosome
+  #example of specifyinge a vector of rates: initializeRecombinationRate(c(1e-7, 1e-8), c(49999,99999))
+  #whre c(49999,99999) is a vector of end positions for which piecewise constant rates are given in the first argument
+  initializeRecombinationRate([rate]);
+  #its also possible to define a mutation rate map
+}
+
+#next step is to define eidos events
+
+#defines an eidos event that is scheduled to run in generation 1 (the very beginning of the similuation), but after the initalize() callbacks
+#Eidos evnts are run at the beginning of each generation
+#Each event scheduled to run in a specific generation or range of generations.
+#single generation is specified w/ a single number. Range of generations specified with Eidos sequence operator
+#sequence: 10:19 { ... }
+#After initialize callbacks complete, SLiM defines a new Eidos constant named 'sim' that represents the simulation itself
+#'sim' object used to access simulation properties .addSubpop() is a method on sim
+#adds new subpopulation to the simulation
+#note: there is a third, optional sex ratio parameter
+
+1
+{
+  sim.addSubpop("p1", 500)
+}
+
+##Alternate ways to terminate the simulation
+
+#terminate simulation with no output:
+10000
+{
+  sim.simulationFinished();
+}
+
+#temrinate simulation with basic output:
+#note: keyword late() -- SLiM can run user-defined Eidos events at 2 different points in the generation cycle -- early() and late(), with early() as default
+#early() -- prior to generation of offspring
+#late() -- after the gneration of offspring
+10000 late()
+{
+  sim.outputFull();
+}
+
+#terminate with random population sample (of haploid genomes)
+#calls the method outputSample() on the subpopulation from which the sample should be taken with
+#a sample size of 10 GENOMES  (not individuals) at generation 5000
+#also supports output of samples in MS format using outputMSSample()
+#and output of samples in VCF format using outputVCFSample()
+
+initialize() {
+ initializeMutationRate( 1e-7);
+ initializeMutationType( "m1", 0.5, "f", 0.0);
+ initializeGenomicElementType( "g1", m1, 1.0);
+ initializeGenomicElement( g1, 0, 99999);
+ initializeRecombinationRate( 1e-8);
+}
+1 { sim.addSubpop("p1", 500); }
+5000 late() { p1.outputSample(10); }
+10000 late() { sim.outputFull(); }
+
+#terminate with a random population sample (of individuals)
+
+#exponential growth
+initialize() {
+  initializeMutationRate(1e-7);
+  initializeMutationType("m1", 0.5, "f", 0.0)
+  initializeGenomicElementType("g1", m1, 1.0);
+  initializeGenomicElement(g1, 0, 99999);
+  initializeRecombinationRate(1e-8);
+}
+
+1
+{
+  sim.addSubpop("p1", 100);
+}
+
+1000:1099
+{
+  newSize = asInteger(p1.individualCount * 1.03);
+  p1.setSubpopulationSize(newSize);
+}
+
+#Above schedules an event to run from generations 1000 to 1099 which produces exponential growth for 100 generations
+#exponential growth rate of 1.03
+#size converted to an integer
+#setSubpopulationSize() does not change the current size of the population. Instead, it sets
+#target size that will be used the next time that an offspring generation is created. Population size is rounded down to an individual each generation
+#this rounding error can produce significant differences when compounded over lots of generations
+#to avoid, try something like this:
+
+initialize() {
+  initializeMutationRate(1e-7);
+  initializeMutationType("m1", 0.5, "f", 0.0);
+  initializeGenomicElementType("g1", m1, 1.0);
+  initializeGenomicElement(g1, 0, 99999);
+  initializeRecombinationRate(1e-8);
+}
+
+1
+{
+  sim.addSubpopulation("p1", 100);
+}
+
+1000:1099
+{
+  newSize = asInteger(round(1.03^(sim.generation - 999) * 100));
+  p1.setSubpopulationSize(newSize);
+}
+
+#the above will avoid cumulative rounding error
+
+#to increase population to a set size:
+
+1000:
+{
+  newSize = round(1.03^(sim.generation - 999) * 100);
+  if (newsize > 2000)
+    newSize = 2000;
+  p1.setSubpopulationSize(asInteger(newSize));
+}
+
+#note writing generation range for event as '1000:', will run event every generation after 1000
+
+#note that the above example is a little inefficient because the block will continue to run even once pop has hit 2000
+using the method .deregisterScriptBlock(self), can prevent the event from running in future generation
+
+1000:
+{
+  newSize = asInteger(round(1.03(sim.generation - 999) * 100));
+  if(newSize >= 2000)
+  {
+    newSize = 2000;
+    sim.deregisterScriptBlock(self);
+  }
+  p1.setSubpopulationSize(newSize);
+}
+
+
+#splitting subpopulations
+
+initialize(){
+  initializeMutationRate(1e-7);
+  initializeMutationType("m1", 0.5, "f", 0.0);
+  initializeGenomicElementType("g1", m1, 1.0);
+  initializeGenomicElement(g1, 0, 99999);
+  initializeRecombinationRate(1e-8);
+}
+
+1{
+  sim.addSubpop("p1", 500);
+}
+
+100{
+  sim.addSubpopSplit("p2", 100, p1);
+}
+
+#Subpopulation of size 100 split from population 1

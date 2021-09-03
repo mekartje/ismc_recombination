@@ -1,0 +1,19 @@
+orig_alphabet_size
+2
+orig_seq_length
+9993660
+nStates2alphabet_size
+200 14
+symbol2pair
+2 0 0
+3 2 2
+4 3 3
+5 4 4
+6 5 5
+7 6 6
+8 7 7
+9 8 8
+10 9 9
+11 10 10
+12 11 11
+13 12 12

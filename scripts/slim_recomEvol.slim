@@ -1,0 +1,105 @@
+//Add arguments for new recombination rates and window ends
+
+// Testing -- 3 windows
+// 2 scenarios -- H, L, H --> L, H, L
+// H, 0, H --> 0, H, 0
+
+// for each, simulate a population of 500 individuals, 15Kb region. 
+// collect crossovers occuring over 1 generation. Compare distribution of CO counts to expectation from rates
+
+//Usage: slim -d "outpre=[output_prefix]" -d "recombination_rates=[comma-sep rec rates]" -d "window_ends=[comma-sep rec rate window ends] -d "new_recombination_rates=[comma-sep new rec rates]" -d "new_window_ends=[comma-sep new window ends]" slim_recomEvol.slim
+
+initialize(){
+	initializeMutationRate(1e-7);
+	initializeMutationType('m1', 0.5, 'f', 0.0);
+	initializeGenomicElementType('g1', m1, 1.0);
+	initializeGenomicElement(g1, 0, 9999);
+	rates = asFloat(strsplit(recombination_rates, sep = ','));
+	ends = asFloat(strsplit(window_ends, sep = ','));
+	initializeRecombinationRate(rates = rates, ends = ends);
+	writeFile(filePath = paste(c(outpre, '_CObreakpoints.txt'), sep = ''), contents = paste(c('win_start', 'win_end', 'before_after', 'breakpoint_count'), sep = '\t')
+}
+
+1{
+	sim.addSubpop('p1', 500);
+}
+
+500 recombination(){
+	// vector of new recombination rates
+	new_rates = asFloat(strsplit(new_recombination_rates, sep = ','));
+	// vector of end positions	(same as original)
+	new_ends = sim.chromosome.recombinationEndPositions;
+	// vector of start positions (same as original -- not sure that I need this)
+	new_starts = c(0, new_ends[0:(length(new_ends) - 2)] + 1);
+	// original vector of recombination rates
+	rates = sim.chromosome.recombinationRates;
+	// original vector of end positions (now, same as new_ends)
+	ends = asFloat(strsplit(new_window_ends, sep = ','));
+	// original vector of chromosome start postitions (now, same as new_starts)
+	starts = c(0, ends[0:(length(ends) - 2)] + 1);
+	// vector of recombination rate differences -- use this to decide whether to add or remove crossovers
+	rate_diff = new_rates - rates;
+	// window size -- use end of first window
+	win_size = ends[0] + 1;
+	// iterating over windows
+	for(win in 0:(length(rates) - 1)){
+		// if new rate < old rate
+		if(rate_diff[win] < 0){
+			// remove crossovers with pois(lambda = abs(rate_diff) * win_size)
+			// collect breakpoints within window
+			win_breaks = breakpoints[which(breakpoints >= starts[win] & breakpoints <= ends[win])];
+			// determine number of crossovers to remove
+			// if new rate zero, remove all
+			if(new_rates[win] == 0){
+				num_remove = length(win_breaks);
+			}
+			// if new rate > 0, poisson rv
+			else if(new_rates[win] > 0){
+				num_remove = rpois(1, abs(rate_diff[win]) * win_size);
+				// cap num_remove at the number of breaks within the window
+				if(num_remove > length(win_breaks)){
+					num_remove = length(win_breaks);
+				}
+			}
+			// randomly select a number of positions = num_remove to remove
+			COs_remove = sample(win_breaks, num_remove);
+			// remove these from breakpoints
+			for(i in COs_remove){
+				breakpoints = breakpoints[breakpoints != i];
+			}					
+		}
+		// if the new rate is higher than the old rate		
+		else if(rate_diff[win] > 0){
+			// add crossovers with prob = abs(rate_diff)
+			// note -- under this condition, the new rate is always > 0
+			num_add = rpois(1, rate_diff[win] * win_size);
+			// randomly select num_add positions to add
+			CO_add = rdunif(num_add, min = starts[win], max = ends[win]);
+			// add to breakpoints
+			breakpoints = c(breakpoints, CO_add);
+			// sort breakpoints, maybe unnecessary
+			breakpoints = sort(breakpoints);
+			//check for duplicates
+			while(length(breakpoints) > length(unique(breakpoints))){
+				//get number of breakpoints to re-draw
+				num_redraw = length(breakpoints) - length(unique(breakpoints));
+				//re-draw breakpoints
+				CO_redraw = rdunif(num_redraw, min = starts[win], max = ends[win]);
+				//cat to breakpoints
+				breakpoints = c(unique(breakpoints), CO_redraw)
+				//re-sort
+				breakpoints = sort(breakpoints)
+			}
+		}
+		// if there is no difference in rate
+		else if(rate_diff[win] == 0){
+			// do nothing. this conditional is unnecesary
+			next;
+		}
+	}
+	return T;
+}
+
+501 late() { 
+	sim.simulationFinished();
+}

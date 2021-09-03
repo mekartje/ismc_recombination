@@ -1,0 +1,10 @@
+// ismc_mapper will read ismc output to generate binned recombination maps.
+// This label must be the same as used in the iSMC options file:
+dataset_label = /home/mikey/projects/ismc_recom/chr1/chr1_rand4_gough_geneMask_varrm
+
+// ismc_mapper will output maps using different bin sizes, integers specified
+// within parenthesis and separated by commas (DO NOT use scientific notation).
+bin_sizes =  //DEFAULT = (10000, 100000, 1000000)
+
+// Same tab file as used by ismc
+tab_file_path = /home/mikey/projects/ismc_recom/data/chr_split/chr1_gough_autosomes_snps_gough14_germany8_gatk_qual100.tab

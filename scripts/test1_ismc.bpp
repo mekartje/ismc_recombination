@@ -1,0 +1,18 @@
+#iSMC parameter file generated using coalsim_prep_ismc.py
+dataset_label = test1
+input_file_type = VCF
+sequence_file_path = test1.vcf
+mask_file_path =   
+mask_file_type =   
+seq_compression_type =   
+mask_compression_type =   
+tab_file_path = test1.tab
+diploid_indices = (0,1)
+optimize = true
+decode = true
+number_threads = 4
+decode_breakpoints_parallel = false
+number_rho_categories = 5
+number_intervals =   
+function_tolerance = 1e-4
+fragment_size = 3000000

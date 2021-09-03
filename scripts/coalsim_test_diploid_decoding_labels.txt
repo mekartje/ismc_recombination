@@ -1,0 +1,5 @@
+decoding_label	diploid_id
+coalsim_test_diploid_1	tsk_0
+coalsim_test_diploid_2	tsk_1
+coalsim_test_diploid_3	tsk_2
+coalsim_test_diploid_4	tsk_3

@@ -1,0 +1,50 @@
+// path to recombination map
+rec_map_path = ;
+// Source population size
+mainland_N = ;
+burnin = 10 * mainland_N;
+initialize(){
+  initializeMutationRate();
+  initializeMutationType('m1', 0.5, 'f', 0.0);
+  initializeGenomicElementType('g1', m1, 1.0);
+  initializeGenomicElement(g1, 0, 9999999);
+
+  // read in recombination map
+  lines = readFile(rec_map_path);
+  rates = NULL;
+  ends = NULL;
+
+  for(line in lines){
+    components = strsplit(line, '\t');
+    ends = c(ends, asInteger(components[0]));
+    rates = c(rates, asFloat(components[1]));
+  }
+
+  initializeRecombinationRate(rates, ends);
+}
+
+// Initialize population
+1 {
+  sim.addSubpop('Mainland', mainland_N);
+}
+
+// After a burn-in of 10Ne generation, split
+// consider running the burnin in MS and then passing this MS output as the starting
+// point for these simulations
+burnin {
+    // add new population, split from Mainland
+    sim.addSubpopSplit('Island', 350, Mainland);
+    // change recombination rate in Gough
+    //  I think I'll need to use recombination() callbacks and apply thinning/superposition
+      to adjust rates.
+
+}
+
+burnin recombination(Island) {
+  // cannot find good documenation on this
+  // subtract new map from old to condition on +/- and superposition/thinning
+}
+
+burnin {
+[Exponential growth]
+}
