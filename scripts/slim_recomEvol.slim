@@ -5,7 +5,8 @@
 // H, 0, H --> 0, H, 0
 
 // for each, simulate a population of 500 individuals, 15Kb region. 
-// collect crossovers occuring over 1 generation. Compare distribution of CO counts to expectation from rates
+// collect crossovers occuring in 1 generation before change and 1 generation after change. Compare distribution of CO counts to expectation from rates
+// Looks good
 
 //Usage: slim -d "outpre=[output_prefix]" -d "recombination_rates=[comma-sep rec rates]" -d "window_ends=[comma-sep rec rate window ends] -d "new_recombination_rates=[comma-sep new rec rates]" -d "new_window_ends=[comma-sep new window ends]" slim_recomEvol.slim
 
@@ -13,18 +14,24 @@ initialize(){
 	initializeMutationRate(1e-7);
 	initializeMutationType('m1', 0.5, 'f', 0.0);
 	initializeGenomicElementType('g1', m1, 1.0);
-	initializeGenomicElement(g1, 0, 9999);
+	initializeGenomicElement(g1, 0, 14999);
 	rates = asFloat(strsplit(recombination_rates, sep = ','));
-	ends = asFloat(strsplit(window_ends, sep = ','));
+	ends = asInteger(strsplit(window_ends, sep = ','));
 	initializeRecombinationRate(rates = rates, ends = ends);
-	writeFile(filePath = paste(c(outpre, '_CObreakpoints.txt'), sep = ''), contents = paste(c('win_start', 'win_end', 'before_after', 'breakpoint_count'), sep = '\t')
+	writeFile(filePath = paste(c(outpre, '_CObreakpoints_prechange.txt'), sep = ''), contents = 'breakpoint_count');
+	writeFile(filePath = paste(c(outpre, '_CObreakpoints_postchange.txt'), sep = ''), contents = 'breakpoint_count');
 }
 
 1{
 	sim.addSubpop('p1', 500);
+} 
+
+2 recombination(){
+	writeFile(filePath = paste(c(outpre, '_CObreakpoints_prechange.txt'), sep = ''), contents = asString(breakpoints), append = T);
+	return T;
 }
 
-500 recombination(){
+10: recombination(){
 	// vector of new recombination rates
 	new_rates = asFloat(strsplit(new_recombination_rates, sep = ','));
 	// vector of end positions	(same as original)
@@ -34,7 +41,7 @@ initialize(){
 	// original vector of recombination rates
 	rates = sim.chromosome.recombinationRates;
 	// original vector of end positions (now, same as new_ends)
-	ends = asFloat(strsplit(new_window_ends, sep = ','));
+	ends = asInteger(strsplit(new_window_ends, sep = ','));
 	// original vector of chromosome start postitions (now, same as new_starts)
 	starts = c(0, ends[0:(length(ends) - 2)] + 1);
 	// vector of recombination rate differences -- use this to decide whether to add or remove crossovers
@@ -86,9 +93,9 @@ initialize(){
 				//re-draw breakpoints
 				CO_redraw = rdunif(num_redraw, min = starts[win], max = ends[win]);
 				//cat to breakpoints
-				breakpoints = c(unique(breakpoints), CO_redraw)
+				breakpoints = c(unique(breakpoints), CO_redraw);
 				//re-sort
-				breakpoints = sort(breakpoints)
+				breakpoints = sort(breakpoints);
 			}
 		}
 		// if there is no difference in rate
@@ -100,6 +107,11 @@ initialize(){
 	return T;
 }
 
-501 late() { 
+11 recombination(){
+	writeFile(filePath = paste(c(outpre, '_CObreakpoints_postchange.txt'), sep = ''), contents = asString(breakpoints), append = T);
+	return T;
+}
+
+11	late(){
 	sim.simulationFinished();
 }
