@@ -1,7 +1,11 @@
 //Add arguments for new recombination rates and window ends (done)
 //Switch to recombination rate input from file (done)
-//Switch to argument input from text file
-//figure out how to set global definitions, e.g. to avoid reading in recombination rate map redundantly
+//Switch to argument input from text file (done)
+//figure out how to set global definitions, e.g. to avoid reading in recombination rate map redundantly (later)
+//integrate remaining functions:
+	//population sizes
+	//population split/colonization timing
+	//mutation rate specification
 
 // Testing -- 3 windows
 // 2 scenarios -- H, L, H --> L, H, L
@@ -24,14 +28,36 @@ initialize(){
 		if(line[0] == 'outpre'){
 			outpre = line[1];
 		}
+		else if(line[1] == 'burnin'){
+			burnin = asInteger(line[1]);
+		}
 		else if(line[0] == 'rec_map_path'){
 			rec_map_path = line[1];
 		}
 		else if(line[0] == 'new_rec_map_path'){
 			new_rec_map_path = line[1];
 		}
+		else if(line[0] == 'mut_rate'){
+			mut_rate = asFloat(line[1]);
+		}
+		else if(line[0] == 'colonization_time'){
+			colonization_time = asInteger(line[1]);
+		}
+		else if(line[0] == 'mainland_Ne'){
+			mainland_Ne = asInteger(line[1]);
+		}
+		else if(line[0] == 'island_Ne'){
+			island_Ne = asInteger(line[1]);
+		}
+		else if(line[0] == 'bottleneck_Ne'){
+			bottleneck_Ne == asInteger(line[1]);
+		}
+		else if(line[0] == 'growth_rate'){
+			growth_rate == asFloat(line[1]);
+		}
 	}
-	initializeMutationRate(1e-7);
+	
+	initializeMutationRate(mut_rate);
 	initializeMutationType('m1', 0.5, 'f', 0.0);
 	initializeGenomicElementType('g1', m1, 1.0);
 	initializeGenomicElement(g1, 0, 14999);
@@ -48,8 +74,10 @@ initialize(){
 	writeFile(filePath = paste(c(outpre, '_CObreakpoints_postchange.txt'), sep = ''), contents = 'breakpoint_count');
 }
 
+
+// Initialize mainland populatoin
 1{
-	sim.addSubpop('p1', 500);
+	sim.addSubpop('mainland', mainland_Ne);
 } 
 
 2 recombination(){
@@ -66,17 +94,13 @@ initialize(){
 	return T;
 }
 
-9{
-	lines = readFile(new_rec_map_path);
-	new_rates = NULL;
-	new_ends = NULL;
-	for(line in lines){
-		
-	}
-	initializeRecombinationRate(
+// split populations after burnin
+burnin{
+	sim.addSubpopSplit('island', bottleneck_Ne, mainland)
 }
 
-10: recombination(){
+// change recombination landscape in island at time of colonization
+burnin: recombination(island){
 	lines = readFile(new_rec_map_path);
 	new_rates = NULL;
 	new_ends = NULL;
@@ -174,6 +198,9 @@ initialize(){
 	return T;
 }
 
-11	late(){
-	sim.simulationFinished();
+//ADD EXPONENTIAL GROWTH FROM BOTTLENECK_NE TO ISLAND_NE AT GROWTH_RATE
+
+// after colonization_time generations, output a vcf for each population
+burnin + colonization_time	late(){
+	;
 }
