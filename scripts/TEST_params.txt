@@ -1,0 +1,3 @@
+outpre=TEST
+rec_map_path=TEST_rec_map.txt
+new_rec_map_path=TEST_new_rec_map.txt
