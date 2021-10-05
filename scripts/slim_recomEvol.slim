@@ -6,6 +6,8 @@
 	//population sizes
 	//population split/colonization timing
 	//mutation rate specification
+	
+//look up setRecombinationRate chromosome method
 
 // Testing -- 3 windows
 // 2 scenarios -- H, L, H --> L, H, L
@@ -19,10 +21,21 @@
 
 // Old Usage: slim -d "outpre=[output_prefix]" -d "rec_map_path=[comma-sep rec rates]" -d "new_rec_map_path=[comma-sep new rec rates]" slim_recomEvol.slim
 
-// Old Usage: slim -d "outpre=[output_prefix]" -d "recombination_rates=[comma-sep rec rates]" -d "window_ends=[comma-sep rec rate window ends] -d "new_recombination_rates=[comma-sep new rec rates]" -d "new_window_ends=[comma-sep new window ends]" slim_recomEvol.slim
+// Old Usage: slim -d "outpre=[output_prefix]" -d "recombination_rates=[comma-sep rec rates]" -d "window_ends=[comma-sep rec rate window ends] -d "new_recombination_rates=[comma-sep new rec rates]" -d "new_window_ends=[comma-sep new window ends]" "sample_size=[sample size]" slim_recomEvol.slim
 
 initialize(){
 	lines = readFile(args);
+	// initialize args
+	outpre = '';
+	burnin = 0;
+	rec_map_path = '';
+	mut_rate = '';
+	colonization_time = 0;
+	mainland_Ne = 0;
+	island_Ne = 0; 
+	bottleneck_Ne = 0;
+	growth_rate = 0;
+	sample_size = 0;
 	for(line in lines){
 		line = strsplit(line, '=');
 		if(line[0] == 'outpre'){
@@ -50,12 +63,16 @@ initialize(){
 			island_Ne = asInteger(line[1]);
 		}
 		else if(line[0] == 'bottleneck_Ne'){
-			bottleneck_Ne == asInteger(line[1]);
+			bottleneck_Ne = asInteger(line[1]);
 		}
 		else if(line[0] == 'growth_rate'){
-			growth_rate == asFloat(line[1]);
+			growth_rate = asFloat(line[1]);
+		}
+		else if(line[0] == 'sample_size'){
+			sample_size = asInteger(line[1]);
 		}
 	}
+	print(mut_rate);
 	
 	initializeMutationRate(mut_rate);
 	initializeMutationType('m1', 0.5, 'f', 0.0);
@@ -77,30 +94,56 @@ initialize(){
 
 // Initialize mainland populatoin
 1{
-	sim.addSubpop('mainland', mainland_Ne);
-} 
-
-2 recombination(){
-	// get outpre again
 	lines = readFile(args);
+	mainland_Ne = 0;
 	for(line in lines){
 		line = strsplit(line, '=');
-		if(line[0] == 'outpre'){
-			outpre = line[1];
-			break;
+		if(line[0] == 'mainland_Ne'){
+			mainland_Ne = asInteger(line[1]);
 		}
 	}
-	writeFile(filePath = paste(c(outpre, '_CObreakpoints_prechange.txt'), sep = ''), contents = asString(breakpoints), append = T);
-	return T;
-}
+	sim.addSubpop('p1', mainland_Ne);
+} 
+
+//2 recombination(){
+//	// get outpre again
+//	lines = readFile(args);
+//	for(line in lines){
+//		line = strsplit(line, '=');
+//		if(line[0] == 'outpre'){
+//			outpre = line[1];
+//			break;
+//		}
+//	}
+//	writeFile(filePath = paste(c(outpre, '_CObreakpoints_prechange.txt'), sep = ''), contents = asString(breakpoints), append = T);
+//	return T;
+//}
 
 // split populations after burnin
-burnin{
-	sim.addSubpopSplit('island', bottleneck_Ne, mainland)
+//burnin{
+1000000{
+	lines = readFile(args);
+	bottleneck_Ne = 0;
+	for(line in lines){
+		line = strsplit(line, '=');
+		if(line[0] == 'bottleneck_Ne'){
+			bottleneck_Ne = asInteger(line[1]);
+		}
+	}
+	sim.addSubpopSplit('p2', bottleneck_Ne, p1);
 }
 
 // change recombination landscape in island at time of colonization
-burnin: recombination(island){
+//burnin: recombination(island){
+1000000: recombination(p2){
+	new_rec_map_path = '';
+	lines = readFile(args);
+	for(line in lines){
+		line = strsplit(line, '=');
+		if(line[0] == 'new_rec_map_path'){
+			new_rec_map_path = line[1];
+		}
+	}
 	lines = readFile(new_rec_map_path);
 	new_rates = NULL;
 	new_ends = NULL;
@@ -184,23 +227,65 @@ burnin: recombination(island){
 	return T;
 }
 
-11 recombination(){
-	// get outpre again
+//11 recombination(){
+//	// get outpre again
+//	lines = readFile(args);
+//	for(line in lines){
+//		line = strsplit(line, '=');
+//		if(line[0] == 'outpre'){
+//			outpre = line[1];
+//			break;
+//		}
+//	}
+//	writeFile(filePath = paste(c(outpre, '_CObreakpoints_postchange.txt'), sep = ''), contents = asString(breakpoints), append = T);
+//	return T;
+//}
+
+//EXPONENTIAL GROWTH FROM BOTTLENECK_NE TO ISLAND_NE AT GROWTH_RATE
+//burnin:burnin + colonization_time {
+1000001:1000030{
+	growth_rate = 0;
+	burnin = 0;
+	bottleneck_Ne = 0;
+	island_Ne = 0;
 	lines = readFile(args);
 	for(line in lines){
 		line = strsplit(line, '=');
-		if(line[0] == 'outpre'){
-			outpre = line[1];
-			break;
+		if(line[0] == 'growth_rate'){
+			growth_rate = asFloat(line[1]);
+		}
+		else if(line[0] == 'burnin'){
+			burnin = asInteger(line[1]);
+		}
+		else if(line[0] == 'bottleneck_Ne'){
+			bottleneck_Ne = asInteger(line[1]);
+		}
+		else if(line[0] == 'island_Ne'){
+			island_Ne = asInteger(line[1]);
 		}
 	}
-	writeFile(filePath = paste(c(outpre, '_CObreakpoints_postchange.txt'), sep = ''), contents = asString(breakpoints), append = T);
-	return T;
+	newSize = asInteger(round(growth_rate*(sim.generation - burnin) * bottleneck_Ne));
+	if(newSize > island_Ne){
+		newSize = island_Ne;
+	}
+	p2.setSubpopulationSize(asInteger(newSize));
 }
 
-//ADD EXPONENTIAL GROWTH FROM BOTTLENECK_NE TO ISLAND_NE AT GROWTH_RATE
-
 // after colonization_time generations, output a vcf for each population
-burnin + colonization_time	late(){
-	;
+//burnin + colonization_time	late(){
+1000030	late(){
+	lines = readFile(args);
+	sample_size = 0;
+	outpre = '';
+	for(line in lines){
+		line = strsplit(line, '=');
+		if(line[0] == 'sample_size'){
+			sample_size = asInteger(line[1]);
+		}
+		else if(line[0] == 'outpre'){
+			outpre = line[1];
+		}
+	}
+	p1.outputVCFSample(sampleSize = sample_size, filePath = paste(c(outpre, '_mainland.vcf'), sep = ''));
+	p2.outputVCFSample(sampleSize = sample_size, filePath = paste(c(outpre, '_island.vcf'), sep = ''));
 }

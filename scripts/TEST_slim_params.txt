@@ -1,0 +1,11 @@
+outpre=SLIMTEST
+burnin=1000000
+rec_map_path=test_recmap.txt
+new_rec_map_path=test_new_recmap.txt
+mut_rate=1e-7 
+colonization_time=20
+mainland_Ne=100
+island_Ne=50
+bottleneck_Ne=5
+growth_rate=2
+sample_size=4
